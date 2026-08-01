@@ -88,6 +88,8 @@ def make_tray_icon(window, server) -> "pystray.Icon":
     import pystray
     from PIL import Image
 
+    from labscribe.capture import orchestrator
+
     image = Image.open(resource_path("assets/icon.png"))
 
     def show_dashboard(icon, item):
@@ -100,9 +102,37 @@ def make_tray_icon(window, server) -> "pystray.Icon":
         # Destroying the window unblocks webview.start() on the main thread
         window.destroy()
 
+    # The tray shares the process with the API server, so it can drive the
+    # orchestrator directly. Errors (e.g. folder not configured) surface as
+    # a tray notification instead of a crash. The `enabled` callables are
+    # re-evaluated by pystray every time the menu opens.
+    def tray_start(icon, item):
+        try:
+            s = orchestrator.start_session()
+            icon.notify(f"Capture started: {s['name']}", APP_NAME)
+        except orchestrator.SessionError as e:
+            icon.notify(str(e), APP_NAME)
+
+    def tray_stop(icon, item):
+        try:
+            s = orchestrator.stop_session()
+            c = s["counts"]
+            icon.notify(
+                f"Stopped: {c['transcripts']} transcripts, "
+                f"{c['screenshots']} screenshots, {c['notes']} notes",
+                APP_NAME,
+            )
+        except orchestrator.SessionError as e:
+            icon.notify(str(e), APP_NAME)
+
+    def session_active(item) -> bool:
+        return orchestrator.active_session() is not None
+
     menu = pystray.Menu(
         pystray.MenuItem("Show Dashboard", show_dashboard, default=True),
-        pystray.MenuItem("Start Session (M2)", None, enabled=False),
+        pystray.MenuItem("Start Session", tray_start,
+                         enabled=lambda item: not session_active(item)),
+        pystray.MenuItem("Stop Session", tray_stop, enabled=session_active),
         pystray.MenuItem("Generate Docs (M3)", None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", quit_app),

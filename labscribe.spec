@@ -13,6 +13,8 @@ a = Analysis(
     datas=[
         # (source, destination inside the bundle) — resource_path() looks these up
         ("src\\labscribe\\dashboard\\static", "dashboard\\static"),
+        ("src\\labscribe\\capture\\agents\\windows_profile.ps1", "capture\\agents"),
+        ("src\\labscribe\\capture\\agents\\linux_bashrc.sh", "capture\\agents"),
         ("assets\\icon.png", "assets"),
     ],
     hiddenimports=(

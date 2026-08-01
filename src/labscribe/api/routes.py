@@ -6,11 +6,13 @@ app window and the Python logic, never reachable from the network.
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from labscribe.capture import orchestrator
+from labscribe.capture.agents import render_agents
 from labscribe.config import settings
 
 
@@ -31,13 +33,21 @@ class SettingsIn(BaseModel):
     api_key: str = ""
 
 
+class SessionIn(BaseModel):
+    name: str = ""
+
+
+class NoteIn(BaseModel):
+    text: str
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="LabScribe", docs_url=None, redoc_url=None)
     static = _static_dir()
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "milestone": "M1"}
+        return {"status": "ok", "milestone": "M2"}
 
     @app.get("/api/settings")
     def read_settings():
@@ -52,6 +62,43 @@ def create_app() -> FastAPI:
             api_key=body.api_key or None,
         )
         return settings.get_settings()
+
+    # ---------- capture sessions (M2) ----------
+    # SessionError means "user-facing problem" (folder missing, no session
+    # running, ...) — map it to HTTP 400 so the UI can show the message.
+
+    @app.get("/api/status")
+    def read_status():
+        return orchestrator.status()
+
+    @app.post("/api/session/start")
+    def session_start(body: SessionIn):
+        try:
+            return orchestrator.start_session(body.name)
+        except orchestrator.SessionError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @app.post("/api/session/stop")
+    def session_stop():
+        try:
+            return orchestrator.stop_session()
+        except orchestrator.SessionError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @app.get("/api/sessions")
+    def sessions():
+        return orchestrator.list_sessions()
+
+    @app.post("/api/notes")
+    def add_note(body: NoteIn):
+        try:
+            return orchestrator.add_note(body.text)
+        except orchestrator.SessionError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @app.get("/api/agents")
+    def agents():
+        return render_agents()
 
     @app.get("/")
     def index():

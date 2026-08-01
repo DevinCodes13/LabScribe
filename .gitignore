@@ -1,6 +1,9 @@
 # Secrets — the real .env must never be committed (spec R4)
 .env
 
+# Local app state (session history lives next to .env in dev mode)
+sessions.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -20,4 +23,5 @@ Desktop.ini
 .idea/
 
 # Local capture data if ever pointed inside the repo by mistake
-capture/
+# (leading slash = repo root only; src/labscribe/capture is real code)
+/capture/

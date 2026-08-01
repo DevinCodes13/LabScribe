@@ -14,8 +14,12 @@
       <span class="brand-name">LabScribe</span>
     </div>
     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn" data-view="agents">Capture Agents</button>
     <button class="nav-btn" data-view="settings">Settings</button>
-    <div class="sidebar-footer">Milestone 1 — skeleton</div>
+    <div class="rec-indicator hidden" id="rec-indicator">
+      <span class="rec-dot"></span> RECORDING
+    </div>
+    <div class="sidebar-footer">Milestone 2 — capture</div>
   </nav>
 
   <main class="content">
@@ -25,14 +29,8 @@
       <h1>Dashboard</h1>
 
       <div class="button-row">
-        <button class="big-btn" disabled title="Coming in Milestone 2">
-          ▶ Start Session
-          <span class="badge">M2</span>
-        </button>
-        <button class="big-btn" disabled title="Coming in Milestone 2">
-          ■ Stop Session
-          <span class="badge">M2</span>
-        </button>
+        <button class="big-btn" id="btn-start">▶ Start Session</button>
+        <button class="big-btn" id="btn-stop" disabled>■ Stop Session</button>
         <button class="big-btn" disabled title="Coming in Milestone 3">
           ✎ Generate Docs
           <span class="badge">M3</span>
@@ -42,25 +40,72 @@
           <span class="badge">M4</span>
         </button>
       </div>
+      <p class="hint" id="action-error"></p>
 
       <div class="panel">
         <h2>Status</h2>
         <div class="status-grid">
           <div class="stat"><span class="stat-label">Capture</span><span class="stat-value" id="stat-capture">Off</span></div>
-          <div class="stat"><span class="stat-label">Session</span><span class="stat-value">—</span></div>
-          <div class="stat"><span class="stat-label">Transcripts</span><span class="stat-value">0</span></div>
-          <div class="stat"><span class="stat-label">Screenshots</span><span class="stat-value">0</span></div>
-          <div class="stat"><span class="stat-label">Notes</span><span class="stat-value">0</span></div>
-          <div class="stat"><span class="stat-label">Last generated</span><span class="stat-value">never</span></div>
+          <div class="stat"><span class="stat-label">Session</span><span class="stat-value" id="stat-session">—</span></div>
+          <div class="stat"><span class="stat-label">Elapsed</span><span class="stat-value" id="stat-elapsed">—</span></div>
+          <div class="stat"><span class="stat-label">Transcripts</span><span class="stat-value" id="stat-transcripts">0</span></div>
+          <div class="stat"><span class="stat-label">Screenshots</span><span class="stat-value" id="stat-screenshots">0</span></div>
+          <div class="stat"><span class="stat-label">Notes</span><span class="stat-value" id="stat-notes">0</span></div>
         </div>
         <p class="hint" id="config-hint"></p>
       </div>
 
+      <div class="panel">
+        <h2>Quick Note</h2>
+        <form id="note-form" class="note-row">
+          <input type="text" id="note-text"
+                 placeholder="e.g. DC01 promoted to domain controller — DNS warnings were expected"
+                 autocomplete="off">
+          <button type="submit" class="save-btn">Add note</button>
+        </form>
+        <p class="hint-ok" id="note-status"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Sessions</h2>
+        <div id="sessions-list" class="sessions-list">
+          <p class="empty-msg">No sessions yet — click Start Session when you begin lab work.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CAPTURE AGENTS VIEW ============ -->
+    <section id="view-agents" class="view hidden">
+      <h1>Capture Agents</h1>
+
       <div class="panel muted">
-        <h2>Coming next</h2>
-        <p>Session capture, quick notes, and folder watching arrive in M2.
-           Closing this window minimizes LabScribe to the system tray — it keeps
-           running until you choose Quit from the tray icon.</p>
+        <p>These snippets are the <strong>only</strong> way LabScribe captures anything:
+           they record terminal sessions (commands + output) from inside your lab VMs into
+           the shared capture folder. No screen recording, no timers, nothing outside the
+           terminal. Install each one <strong>once</strong> per VM.
+           Paths below assume your VirtualBox share is named
+           <code id="agent-share-name">LabCapture</code> — adjust if yours differs.</p>
+        <p id="agents-unconfigured" class="hint"></p>
+      </div>
+
+      <div class="panel">
+        <h2>Windows VMs — DC01, WKS01 (PowerShell profile)</h2>
+        <div class="code-tools"><button class="copy-btn" data-copy="agent-windows">Copy</button></div>
+        <pre id="agent-windows" class="code-block"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>Linux VMs — SIEM01, KALI01 (~/.bashrc)</h2>
+        <div class="code-tools"><button class="copy-btn" data-copy="agent-linux">Copy</button></div>
+        <pre id="agent-linux" class="code-block"></pre>
+      </div>
+
+      <div class="panel muted">
+        <h2>Screenshots (host machine)</h2>
+        <p>Screenshots are always manual — you decide what gets captured. Recommended:
+           install <strong>ShareX</strong> on this host and set its auto-save folder to
+           <code><span id="agent-shot-path">&lt;shared folder&gt;</span>\screenshots</code>.
+           Then Print Screen while you work and LabScribe picks the files up automatically.</p>
       </div>
     </section>
 
