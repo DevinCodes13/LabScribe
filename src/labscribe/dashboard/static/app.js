@@ -22,6 +22,11 @@ function postJSON(path, body) {
   });
 }
 
+// ---------- mermaid init (bundled locally, no CDN) ----------
+if (window.mermaid) {
+  window.mermaid.initialize({ startOnLoad: false, theme: "dark", securityLevel: "loose" });
+}
+
 // ---------- view switching ----------
 const navButtons = document.querySelectorAll(".nav-btn");
 navButtons.forEach((btn) => {
@@ -31,6 +36,7 @@ navButtons.forEach((btn) => {
     document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
     $("view-" + btn.dataset.view).classList.remove("hidden");
     if (btn.dataset.view === "agents") loadAgents();
+    if (btn.dataset.view === "diagram") loadDiagram();
   });
 });
 
@@ -281,6 +287,95 @@ $("review-raw").addEventListener("input", () => {
       $("review-rendered").innerHTML = data.html;
     } catch (_) {}
   }, 400);
+});
+
+// ---------- network diagram (M4) ----------
+let mermaidSeq = 0;
+
+async function drawMermaid(text) {
+  const el = $("diagram-render");
+  if (!window.mermaid) {
+    el.innerHTML = '<div class="diagram-fallback">Diagram preview unavailable — see the Mermaid source below (it renders on GitHub).</div>';
+    return;
+  }
+  try {
+    const { svg } = await window.mermaid.render("m" + (++mermaidSeq), text);
+    el.innerHTML = svg;
+  } catch (err) {
+    el.innerHTML = '<div class="diagram-fallback">Couldn\'t render preview: ' +
+      (err && err.message ? err.message : "error") +
+      '. The Mermaid source below still renders on GitHub.</div>';
+  }
+}
+
+function renderHostTable(hosts) {
+  const wrap = $("host-table");
+  if (!hosts || !hosts.length) { wrap.innerHTML = '<p class="empty-msg">No hosts.</p>'; return; }
+  const pill = (s) =>
+    `<span class="status-pill status-${s}">${s.toUpperCase()}</span>`;
+  const rows = hosts.map((h) => {
+    const td = document.createElement("template");
+    // Build cells with textContent to avoid injecting scan-derived strings as HTML.
+    const cells = [h.name, h.ip, h.os, h.role].map((v) => {
+      const c = document.createElement("td"); c.textContent = v; return c.outerHTML;
+    });
+    const portsCell = document.createElement("td");
+    portsCell.textContent = (h.ports && h.ports.length) ? h.ports.join(", ") : "—";
+    return `<tr>${cells[0]}<td>${pill(h.status)}</td>${cells[1]}${cells[2]}${cells[3]}${portsCell.outerHTML}</tr>`;
+  }).join("");
+  wrap.innerHTML =
+    `<table class="host-table"><thead><tr>` +
+    `<th>Host</th><th>Status</th><th>IP</th><th>OS</th><th>Role</th><th>Open ports</th>` +
+    `</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function applyDiagram(data) {
+  $("diagram-source").textContent = data.mermaid;
+  renderHostTable(data.hosts);
+  drawMermaid(data.mermaid);
+  const hint = $("nmap-hint");
+  hint.textContent = data.nmap_available
+    ? ""
+    : "nmap not detected — live scanning is disabled. Install nmap (with Npcap) from nmap.org to scan the running lab; 'Build from inventory' works without it.";
+}
+
+async function loadDiagram() {
+  try {
+    applyDiagram(await api("/api/diagram"));
+  } catch (_) {}
+}
+
+async function refreshDiagram(mode) {
+  const err = $("diagram-error");
+  const status = $("diagram-status");
+  err.textContent = "";
+  status.textContent = mode === "scan"
+    ? "Scanning the lab subnet — this can take a minute…"
+    : "Building diagram from inventory…";
+  status.classList.add("busy");
+  $("btn-scan").disabled = true; $("btn-config").disabled = true;
+  try {
+    const data = await postJSON("/api/diagram/refresh?mode=" + mode, {});
+    applyDiagram(data);
+    status.classList.remove("busy");
+    status.textContent = (mode === "scan" ? "Scan complete" : "Diagram built") +
+      " ✓ " + (data.refreshed_at || "");
+    setTimeout(() => { status.textContent = ""; }, 4000);
+  } catch (e) {
+    status.textContent = ""; status.classList.remove("busy");
+    err.textContent = e.message;
+  } finally {
+    $("btn-scan").disabled = false; $("btn-config").disabled = false;
+  }
+}
+
+$("btn-scan").addEventListener("click", () => refreshDiagram("scan"));
+$("btn-config").addEventListener("click", () => refreshDiagram("config"));
+
+// Dashboard "Refresh Diagram" opens the diagram view and runs a live scan.
+$("btn-refresh-diagram").addEventListener("click", () => {
+  showView("diagram");
+  refreshDiagram("scan");
 });
 
 // ---------- capture agents ----------

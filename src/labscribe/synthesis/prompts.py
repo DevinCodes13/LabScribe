@@ -55,7 +55,10 @@ RULES
 4. Never include secrets. If a password, API key, hash, or token appears in the \
    raw material, replace it with `[REDACTED]` in your output. Never echo an \
    Anthropic API key.
-5. Output ONLY the Markdown document. No preamble, no explanation, no code fence \
+5. The Network Diagram section already contains the correct Mermaid diagram. \
+   Reproduce that ```mermaid block EXACTLY as given — do not edit, relabel, or \
+   regenerate it. It was produced from the real lab configuration/scan.
+6. Output ONLY the Markdown document. No preamble, no explanation, no code fence \
    around the whole thing.
 
 TARGET FORMAT

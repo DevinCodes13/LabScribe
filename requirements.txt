@@ -10,9 +10,11 @@ python-dotenv>=1.0    # read/write the .env settings file
 anthropic>=0.69         # official Anthropic SDK — turns transcripts into README markdown
 markdown>=3.5           # renders generated markdown to HTML for the review screen
 
+# Diagram generation (M4)
+python-libnmap>=0.7     # parses nmap XML output into host/port objects
+
 # Packaging
 pyinstaller>=6.10
 
 # Later milestones (installed now so the environment is stable):
-# python-libnmap — added in M4 (diagram generation)
 # GitPython — added in M5 (git integration)

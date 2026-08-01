@@ -15,6 +15,7 @@
     </div>
     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
     <button class="nav-btn" data-view="review">Review Docs</button>
+    <button class="nav-btn" data-view="diagram">Network Diagram</button>
     <button class="nav-btn" data-view="agents">Capture Agents</button>
     <button class="nav-btn" data-view="settings">Settings</button>
     <div class="rec-indicator hidden" id="rec-indicator">
@@ -33,10 +34,7 @@
         <button class="big-btn" id="btn-start">▶ Start Session</button>
         <button class="big-btn" id="btn-stop" disabled>■ Stop Session</button>
         <button class="big-btn" id="btn-generate">✎ Generate Docs</button>
-        <button class="big-btn" disabled title="Coming in Milestone 4">
-          ⟳ Refresh Diagram
-          <span class="badge">M4</span>
-        </button>
+        <button class="big-btn" id="btn-refresh-diagram">⟳ Refresh Diagram</button>
       </div>
       <p class="hint" id="action-error"></p>
 
@@ -113,6 +111,35 @@
       </div>
     </section>
 
+    <!-- ============ NETWORK DIAGRAM VIEW ============ -->
+    <section id="view-diagram" class="view hidden">
+      <h1>Network Diagram</h1>
+
+      <div class="button-row">
+        <button class="big-btn" id="btn-scan">⟳ Refresh from live scan (nmap)</button>
+        <button class="big-btn" id="btn-config">▦ Build from inventory</button>
+      </div>
+      <p class="hint" id="diagram-error"></p>
+      <p class="hint-ok" id="diagram-status"></p>
+      <p class="hint" id="nmap-hint"></p>
+
+      <div class="panel">
+        <h2>Diagram</h2>
+        <div class="diagram-render" id="diagram-render"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Hosts</h2>
+        <div id="host-table"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Mermaid source <span class="label-hint">(renders on GitHub — embedded in the README)</span></h2>
+        <div class="code-tools"><button class="copy-btn" data-copy="diagram-source">Copy</button></div>
+        <pre id="diagram-source" class="code-block"></pre>
+      </div>
+    </section>
+
     <!-- ============ CAPTURE AGENTS VIEW ============ -->
     <section id="view-agents" class="view hidden">
       <h1>Capture Agents</h1>
@@ -182,6 +209,7 @@
 
   </main>
 </div>
+<script src="/static/vendor/mermaid.min.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

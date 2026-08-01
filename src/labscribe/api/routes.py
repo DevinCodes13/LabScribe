@@ -11,9 +11,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from labscribe import diagram
 from labscribe.capture import orchestrator
 from labscribe.capture.agents import render_agents
 from labscribe.config import settings
+from labscribe.diagram import nmap_scan
 from labscribe.synthesis import engine
 from labscribe.synthesis.render import render_markdown
 
@@ -57,7 +59,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "milestone": "M3"}
+        return {"status": "ok", "milestone": "M4"}
 
     @app.get("/api/settings")
     def read_settings():
@@ -138,6 +140,19 @@ def create_app() -> FastAPI:
     def render(body: RenderIn):
         # Live preview for the review screen's editor.
         return {"html": render_markdown(body.markdown)}
+
+    # ---------- network diagram (M4) ----------
+
+    @app.get("/api/diagram")
+    def read_diagram():
+        return diagram.current()
+
+    @app.post("/api/diagram/refresh")
+    def refresh_diagram(mode: str = "scan"):
+        try:
+            return diagram.refresh(mode=mode)
+        except nmap_scan.ScanError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     @app.get("/")
     def index():

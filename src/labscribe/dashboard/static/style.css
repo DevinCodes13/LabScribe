@@ -345,3 +345,32 @@ code { font-family: Consolas, monospace; color: var(--accent); font-size: 0.95em
 
 /* generating overlay spinner text */
 .busy { color: var(--warn); }
+
+/* ---------- M4: network diagram ---------- */
+.diagram-render {
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  min-height: 120px;
+  padding: 8px;
+}
+.diagram-render svg { max-width: 100%; height: auto; }
+.diagram-render .diagram-fallback {
+  color: var(--text-dim); font-size: 14px; align-self: center;
+}
+
+.host-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.host-table th, .host-table td {
+  border: 1px solid var(--border); padding: 7px 10px; text-align: left;
+}
+.host-table th { background: rgba(255,255,255,0.04); color: var(--text-dim);
+                 font-weight: 600; text-transform: uppercase; font-size: 11px;
+                 letter-spacing: 0.05em; }
+.status-pill {
+  display: inline-block; padding: 2px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700;
+}
+.status-up      { background: rgba(52,192,122,0.15); color: var(--accent); }
+.status-down    { background: rgba(224,108,92,0.15); color: #e06c5c; }
+.status-assumed { background: rgba(132,148,167,0.15); color: var(--text-dim); }
+#nmap-hint:empty { display: none; }

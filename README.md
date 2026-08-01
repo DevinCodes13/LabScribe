@@ -30,9 +30,25 @@ icon. Full specification: [docs/LabScribe-SPEC.md](docs/LabScribe-SPEC.md).
 - [x] **M1 — Skeleton**: window + tray + Settings screen + packaged .exe
 - [x] **M2 — Capture orchestration**: sessions, folder watching, notes, agents
 - [x] **M3 — Synthesis engine**: Anthropic API → README markdown + review screen
-- [ ] M4 — nmap → Mermaid diagram
+- [x] **M4 — Diagram generation**: nmap sweep / inventory → Mermaid, embedded in README
 - [ ] M5 — Git integration
 - [ ] M6 — Packaging polish + first-run wizard
+
+## How the network diagram works (M4)
+
+The **Network Diagram** screen builds a Mermaid diagram of the lab two ways:
+
+- **Build from inventory** — always available, no nmap needed. Lays out the
+  known lab hosts (DC / workstation / SIEM / attacker) on your configured subnet.
+- **Refresh from live scan (nmap)** — runs `nmap -sT -T4 -F -Pn` against the lab
+  subnet (a connect scan, so no admin rights needed), marks each host up/down,
+  annotates open ports, and surfaces any unexpected live hosts. Requires
+  [nmap](https://nmap.org/download) installed on the host; the app degrades
+  cleanly with an install hint if it isn't.
+
+The diagram is saved and embedded verbatim into the generated README's Network
+Diagram section (it renders natively on GitHub). The in-app preview uses a
+locally bundled `mermaid.min.js` — no internet needed at runtime.
 
 ## How synthesis works (M3)
 

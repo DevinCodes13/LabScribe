@@ -168,7 +168,14 @@ def generate_docs(session_id: str) -> dict:
         )
 
     cfg = settings.get_settings()
-    system = prompts.SYSTEM_PROMPT.replace("{{TEMPLATE}}", load_template())
+    # Pre-fill the template's diagram placeholder with the real, deterministically
+    # generated network diagram (from the last nmap refresh, else config-only) so
+    # the model reproduces it verbatim instead of inventing one.
+    from labscribe import diagram
+    template = load_template().replace(
+        "{{MERMAID_DIAGRAM}}", diagram.diagram_for_readme(cfg["lab_subnet"])
+    )
+    system = prompts.SYSTEM_PROMPT.replace("{{TEMPLATE}}", template)
     user_content = prompts.build_user_message(
         session, transcripts, screenshots, notes,
         cfg["lab_subnet"], MAX_TRANSCRIPT_CHARS,
