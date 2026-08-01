@@ -61,7 +61,12 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "milestone": "M5"}
+        return {"status": "ok", "milestone": "M6"}
+
+    @app.get("/api/version")
+    def version():
+        from labscribe import __version__
+        return {"version": __version__}
 
     @app.get("/api/settings")
     def read_settings():

@@ -12,6 +12,11 @@ Threading model (this is the part worth understanding):
 Closing the window does NOT exit the app: we intercept the closing event and
 hide the window instead, so LabScribe keeps running in the tray (spec §6).
 Only the tray menu's Quit actually exits.
+
+M6 polish added here: a single-instance guard (a second launch just focuses the
+first and exits), a first-close "still running in the tray" notification, a
+working Generate Docs tray action, and a fatal-error message box so startup
+failures (e.g. a missing WebView2 runtime) surface instead of vanishing.
 """
 
 import argparse
@@ -20,6 +25,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 import urllib.request
 from pathlib import Path
 
@@ -40,6 +46,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from labscribe.api.routes import create_app  # noqa: E402
 
 APP_NAME = "LabScribe"
+
+# A fixed loopback port used purely as a single-instance lock. Binding it holds
+# the lock for the process lifetime; the OS frees it automatically on exit, so
+# there's no stale lockfile to clean up after a crash.
+_SINGLETON_PORT = 49517
+_singleton_socket: socket.socket | None = None
+
+
+def _message_box(text: str, title: str = APP_NAME) -> None:
+    """Show a native dialog (Windows). No-op elsewhere; never raises."""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, text, title, 0x40)  # MB_ICONINFORMATION
+        else:
+            print(f"{title}: {text}")
+    except Exception:
+        pass
+
+
+def acquire_single_instance() -> bool:
+    """Return True if we're the only instance; False if another already holds it."""
+    global _singleton_socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        # SO_REUSEADDR is deliberately NOT set: we want the second instance's
+        # bind to fail while the first is alive.
+        s.bind(("127.0.0.1", _SINGLETON_PORT))
+        s.listen(1)
+        _singleton_socket = s  # keep a reference so it isn't garbage-collected
+        return True
+    except OSError:
+        s.close()
+        return False
 
 
 def resource_path(relative: str) -> Path:
@@ -103,9 +143,9 @@ def make_tray_icon(window, server) -> "pystray.Icon":
         window.destroy()
 
     # The tray shares the process with the API server, so it can drive the
-    # orchestrator directly. Errors (e.g. folder not configured) surface as
-    # a tray notification instead of a crash. The `enabled` callables are
-    # re-evaluated by pystray every time the menu opens.
+    # orchestrator/engine directly. Errors surface as a tray notification
+    # instead of a crash. The `enabled` callables are re-evaluated by pystray
+    # every time the menu opens.
     def tray_start(icon, item):
         try:
             s = orchestrator.start_session()
@@ -125,6 +165,30 @@ def make_tray_icon(window, server) -> "pystray.Icon":
         except orchestrator.SessionError as e:
             icon.notify(str(e), APP_NAME)
 
+    def tray_generate(icon, item):
+        # Generate for the active session, else the most recent one. The API
+        # call can take a minute, so run it off the tray thread.
+        from labscribe.synthesis import engine
+        target = orchestrator.active_session()
+        if target is None:
+            sessions = orchestrator.list_sessions()
+            target = sessions[0] if sessions else None
+        if target is None:
+            icon.notify("No sessions yet — start one first.", APP_NAME)
+            return
+        icon.notify(f"Generating docs for '{target['name']}'…", APP_NAME)
+
+        def work():
+            try:
+                engine.generate_docs(target["id"])
+                icon.notify("Docs generated — open the dashboard to review.", APP_NAME)
+            except engine.SynthesisError as e:
+                icon.notify(str(e), APP_NAME)
+            except Exception:
+                icon.notify("Doc generation failed — see labscribe.log.", APP_NAME)
+
+        threading.Thread(target=work, daemon=True, name="labscribe-gen").start()
+
     def session_active(item) -> bool:
         return orchestrator.active_session() is not None
 
@@ -133,11 +197,54 @@ def make_tray_icon(window, server) -> "pystray.Icon":
         pystray.MenuItem("Start Session", tray_start,
                          enabled=lambda item: not session_active(item)),
         pystray.MenuItem("Stop Session", tray_stop, enabled=session_active),
-        pystray.MenuItem("Generate Docs (M3)", None, enabled=False),
+        pystray.MenuItem("Generate Docs", tray_generate),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", quit_app),
     )
     return pystray.Icon(APP_NAME, image, APP_NAME, menu)
+
+
+def run_app() -> None:
+    """Windowed app: server + native window + tray. Raises on fatal startup error."""
+    import webview
+
+    port = find_free_port()
+    server = start_server(port)
+    wait_for_server(port)
+
+    window = webview.create_window(
+        APP_NAME,
+        f"http://127.0.0.1:{port}/",
+        width=1000,
+        height=700,
+        min_size=(760, 520),
+    )
+
+    tray = make_tray_icon(window, server)
+
+    # Notify once, the first time the window is closed to the tray, so the app
+    # doesn't seem to have vanished.
+    notified = {"closed": False}
+
+    def on_closing():
+        window.hide()
+        if not notified["closed"]:
+            notified["closed"] = True
+            try:
+                tray.notify("LabScribe is still running in the tray. "
+                            "Right-click the icon for options or to Quit.", APP_NAME)
+            except Exception:
+                pass
+        return False  # cancels the close
+
+    window.events.closing += on_closing
+
+    tray.run_detached()
+
+    # Blocks until window.destroy() is called from the tray's Quit
+    webview.start()
+
+    server.should_exit = True
 
 
 def main() -> None:
@@ -156,34 +263,30 @@ def main() -> None:
         uvicorn.run(create_app(), host="127.0.0.1", port=args.port)
         return
 
-    import webview
+    # Single-instance guard: if another copy is already running, focus is left
+    # to it and this launch exits cleanly instead of starting a second tray.
+    if not acquire_single_instance():
+        _message_box("LabScribe is already running — check the system tray "
+                     "(bottom-right of the taskbar).")
+        return
 
-    port = find_free_port()
-    server = start_server(port)
-    wait_for_server(port)
-
-    window = webview.create_window(
-        APP_NAME,
-        f"http://127.0.0.1:{port}/",
-        width=1000,
-        height=700,
-        min_size=(760, 520),
-    )
-
-    def on_closing():
-        # Hide to tray instead of exiting (spec: app runs quietly in background)
-        window.hide()
-        return False  # cancels the close
-
-    window.events.closing += on_closing
-
-    tray = make_tray_icon(window, server)
-    tray.run_detached()
-
-    # Blocks until window.destroy() is called from the tray's Quit
-    webview.start()
-
-    server.should_exit = True
+    try:
+        run_app()
+    except Exception:
+        tb = traceback.format_exc()
+        try:
+            (Path(os.environ.get("APPDATA", ".")) / "LabScribe" / "labscribe.log")\
+                .open("a", encoding="utf-8").write("\nFATAL:\n" + tb + "\n")
+        except Exception:
+            pass
+        _message_box(
+            "LabScribe couldn't start.\n\n"
+            "This is often a missing Microsoft Edge WebView2 runtime — install it "
+            "from https://developer.microsoft.com/microsoft-edge/webview2/ and try "
+            "again.\n\nDetails were written to labscribe.log in %APPDATA%\\LabScribe.",
+            APP_NAME + " — startup error",
+        )
+        raise
 
 
 if __name__ == "__main__":

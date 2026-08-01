@@ -6,6 +6,68 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+<!-- ============ FIRST-RUN SETUP WIZARD ============ -->
+<div id="wizard" class="wizard-overlay hidden">
+  <div class="wizard-card">
+    <div class="wizard-header">
+      <span class="brand-icon">◉</span> LabScribe Setup
+      <span class="wizard-step-count" id="wiz-stepcount"></span>
+    </div>
+
+    <div class="wizard-step" data-step="1">
+      <h2>Welcome</h2>
+      <p>LabScribe watches you build your home lab and writes your GitHub
+         documentation for you — a README with a network diagram, generated from
+         what you actually did.</p>
+      <p class="wiz-note"><strong>Privacy:</strong> LabScribe only ever reads
+         terminal transcripts and screenshots you deliberately take. It never
+         records your screen and never captures anything outside your lab
+         terminals — browsing, email, and everything else stays private.</p>
+      <p>Three quick steps and you're set.</p>
+    </div>
+
+    <div class="wizard-step hidden" data-step="2">
+      <h2>Folders &amp; API key</h2>
+      <label for="wiz-shared">Shared capture folder
+        <span class="label-hint">The VirtualBox shared folder your VMs write transcripts &amp; screenshots into</span>
+      </label>
+      <input type="text" id="wiz-shared" placeholder="C:\LabCapture" spellcheck="false">
+
+      <label for="wiz-repo">Documentation repo path
+        <span class="label-hint">Your local clone of the GitHub repo LabScribe writes the README into</span>
+      </label>
+      <input type="text" id="wiz-repo" placeholder="C:\Users\you\home-lab-docs" spellcheck="false">
+
+      <label for="wiz-subnet">Lab subnet
+        <span class="label-hint">Your isolated lab network, used by the network-diagram scan</span>
+      </label>
+      <input type="text" id="wiz-subnet" placeholder="10.10.10.0/24" spellcheck="false">
+
+      <label for="wiz-key">Anthropic API key
+        <span class="label-hint">Stored locally in .env — never committed, never logged. You can add it later.</span>
+      </label>
+      <input type="password" id="wiz-key" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+
+    <div class="wizard-step hidden" data-step="3">
+      <h2>Capture agents</h2>
+      <p>To capture terminal activity, each lab VM needs a small one-time snippet
+         installed (PowerShell profile on Windows, <code>~/.bashrc</code> on Linux).
+         After setup, open the <strong>Capture Agents</strong> tab — LabScribe
+         generates the exact snippets for your shared folder, ready to copy.</p>
+      <p class="wiz-note">Screenshots are always manual: point ShareX (or any tool)
+         at the <code>screenshots</code> subfolder and LabScribe picks them up.</p>
+      <p>That's it — click Finish to open the dashboard.</p>
+    </div>
+
+    <div class="wizard-nav">
+      <button class="secondary-btn" id="wiz-back">Back</button>
+      <span class="hint" id="wiz-error"></span>
+      <button class="save-btn" id="wiz-next">Next</button>
+    </div>
+  </div>
+</div>
+
 <div class="layout">
 
   <nav class="sidebar">
@@ -21,7 +83,7 @@
     <div class="rec-indicator hidden" id="rec-indicator">
       <span class="rec-dot"></span> RECORDING
     </div>
-    <div class="sidebar-footer">Milestone 3 — synthesis</div>
+    <div class="sidebar-footer" id="app-version">LabScribe</div>
   </nav>
 
   <main class="content">

@@ -32,7 +32,22 @@ icon. Full specification: [docs/LabScribe-SPEC.md](docs/LabScribe-SPEC.md).
 - [x] **M3 — Synthesis engine**: Anthropic API → README markdown + review screen
 - [x] **M4 — Diagram generation**: nmap sweep / inventory → Mermaid, embedded in README
 - [x] **M5 — Git integration**: review → secret-scan → commit; changelog; auto-commit opt-in
-- [ ] M6 — Packaging polish + first-run wizard
+- [x] **M6 — Packaging & polish**: first-run wizard, single-instance guard, tray UX, error handling
+
+**v1.0 — feature-complete.** LabScribe captures lab work, synthesizes README docs
+with an LLM, generates a network diagram, and commits to your repo — all from a
+double-clickable `.exe`, no terminal needed.
+
+## First run & polish (M6)
+
+- **Setup wizard** — on first launch (nothing configured) a 3-step wizard collects
+  your capture folder, repo path, subnet, and API key, then opens the dashboard.
+- **Single instance** — launching LabScribe while it's already running just tells
+  you to check the tray and exits, instead of starting a second copy.
+- **Tray** — Show Dashboard · Start/Stop Session · Generate Docs · Quit, with a
+  one-time "still running in the tray" notice the first time you close the window.
+- **Startup errors** — a fatal startup problem (e.g. a missing WebView2 runtime)
+  shows a dialog with the fix and writes details to `%APPDATA%\LabScribe\labscribe.log`.
 
 ## How committing works (M5)
 

@@ -37,6 +37,17 @@ Pin the exe to the taskbar / make a shortcut as you like.
 | Packaged .exe | `%APPDATA%\LabScribe\.env` | `%APPDATA%\LabScribe\labscribe.log` |
 | From source | `<repo>\.env` (gitignored) | console output |
 
+## Runtime notes (M6)
+
+- **First run**: with no settings yet, the app opens a setup wizard. To re-trigger
+  it for testing, delete `%APPDATA%\LabScribe\.env` (packaged) or `<repo>\.env` (dev).
+- **Single instance**: a fixed loopback port (49517) is bound as a lock. A second
+  launch finds it taken, shows a "already running" dialog, and exits. Nothing to
+  clean up — the OS frees the port on exit.
+- **WebView2**: the app renders via the Microsoft Edge WebView2 runtime (present on
+  current Windows 10/11). If it's missing, startup shows a dialog pointing to the
+  installer and logs details to `%APPDATA%\LabScribe\labscribe.log`.
+
 ## Gotchas learned during M1
 
 - **Windowed exes have no stdout/stderr.** uvicorn logs to stderr; with

@@ -530,7 +530,83 @@ form.addEventListener("submit", async (e) => {
   }
 });
 
+// ---------- version ----------
+async function loadVersion() {
+  try {
+    const v = await api("/api/version");
+    $("app-version").textContent = "LabScribe v" + v.version;
+  } catch (_) {}
+}
+
+// ---------- first-run setup wizard (M6) ----------
+let wizStep = 1;
+const WIZ_STEPS = 3;
+
+function showWizStep(n) {
+  wizStep = n;
+  document.querySelectorAll(".wizard-step").forEach((el) => {
+    el.classList.toggle("hidden", Number(el.dataset.step) !== n);
+  });
+  $("wiz-stepcount").textContent = `Step ${n} of ${WIZ_STEPS}`;
+  $("wiz-back").style.visibility = n === 1 ? "hidden" : "visible";
+  $("wiz-next").textContent = n === WIZ_STEPS ? "Finish" : "Next";
+  $("wiz-error").textContent = "";
+}
+
+function openWizard(defaultSubnet) {
+  $("wiz-subnet").value = defaultSubnet || "10.10.10.0/24";
+  showWizStep(1);
+  $("wizard").classList.remove("hidden");
+}
+
+async function finishWizard() {
+  $("wiz-error").textContent = "Saving…";
+  try {
+    await postJSON("/api/settings", {
+      shared_folder: $("wiz-shared").value,
+      repo_path: $("wiz-repo").value,
+      lab_subnet: $("wiz-subnet").value,
+      api_key: $("wiz-key").value,   // may be empty; added later in Settings
+      auto_commit: false,
+    });
+    $("wizard").classList.add("hidden");
+    await loadSettings();
+    await refreshStatus();
+    await loadSessions();
+  } catch (e) {
+    $("wiz-error").textContent = "Couldn't save: " + e.message;
+  }
+}
+
+$("wiz-next").addEventListener("click", () => {
+  if (wizStep === 2) {
+    // Core paths are required to do anything useful; the key can wait.
+    if (!$("wiz-shared").value.trim() || !$("wiz-repo").value.trim()) {
+      $("wiz-error").textContent = "Please set the shared capture folder and repo path.";
+      return;
+    }
+  }
+  if (wizStep < WIZ_STEPS) showWizStep(wizStep + 1);
+  else finishWizard();
+});
+
+$("wiz-back").addEventListener("click", () => {
+  if (wizStep > 1) showWizStep(wizStep - 1);
+});
+
+async function maybeShowWizard() {
+  try {
+    const s = await api("/api/settings");
+    // First run = nothing configured yet.
+    if (!s.shared_folder && !s.repo_path && !s.api_key_set) {
+      openWizard(s.lab_subnet);
+    }
+  } catch (_) {}
+}
+
 // ---------- boot ----------
+loadVersion();
 loadSettings();
 refreshStatus();
 loadSessions();
+maybeShowWizard();
