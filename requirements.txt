@@ -1,0 +1,15 @@
+# Core app (Milestone 1)
+fastapi>=0.115        # local API server that powers the dashboard
+uvicorn>=0.30         # runs the FastAPI server in-process
+pywebview>=5.3        # native app window rendering the dashboard (uses Windows WebView2)
+pystray>=0.19         # system-tray icon
+Pillow>=10.0          # tray icon image handling (pystray dependency)
+python-dotenv>=1.0    # read/write the .env settings file
+
+# Packaging
+pyinstaller>=6.10
+
+# Later milestones (installed now so the environment is stable):
+# anthropic — added in M3 (synthesis engine)
+# python-libnmap — added in M4 (diagram generation)
+# GitPython — added in M5 (git integration)

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LabScribe</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <nav class="sidebar">
+    <div class="brand">
+      <span class="brand-icon">◉</span>
+      <span class="brand-name">LabScribe</span>
+    </div>
+    <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn" data-view="settings">Settings</button>
+    <div class="sidebar-footer">Milestone 1 — skeleton</div>
+  </nav>
+
+  <main class="content">
+
+    <!-- ============ DASHBOARD VIEW ============ -->
+    <section id="view-dashboard" class="view">
+      <h1>Dashboard</h1>
+
+      <div class="button-row">
+        <button class="big-btn" disabled title="Coming in Milestone 2">
+          ▶ Start Session
+          <span class="badge">M2</span>
+        </button>
+        <button class="big-btn" disabled title="Coming in Milestone 2">
+          ■ Stop Session
+          <span class="badge">M2</span>
+        </button>
+        <button class="big-btn" disabled title="Coming in Milestone 3">
+          ✎ Generate Docs
+          <span class="badge">M3</span>
+        </button>
+        <button class="big-btn" disabled title="Coming in Milestone 4">
+          ⟳ Refresh Diagram
+          <span class="badge">M4</span>
+        </button>
+      </div>
+
+      <div class="panel">
+        <h2>Status</h2>
+        <div class="status-grid">
+          <div class="stat"><span class="stat-label">Capture</span><span class="stat-value" id="stat-capture">Off</span></div>
+          <div class="stat"><span class="stat-label">Session</span><span class="stat-value">—</span></div>
+          <div class="stat"><span class="stat-label">Transcripts</span><span class="stat-value">0</span></div>
+          <div class="stat"><span class="stat-label">Screenshots</span><span class="stat-value">0</span></div>
+          <div class="stat"><span class="stat-label">Notes</span><span class="stat-value">0</span></div>
+          <div class="stat"><span class="stat-label">Last generated</span><span class="stat-value">never</span></div>
+        </div>
+        <p class="hint" id="config-hint"></p>
+      </div>
+
+      <div class="panel muted">
+        <h2>Coming next</h2>
+        <p>Session capture, quick notes, and folder watching arrive in M2.
+           Closing this window minimizes LabScribe to the system tray — it keeps
+           running until you choose Quit from the tray icon.</p>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS VIEW ============ -->
+    <section id="view-settings" class="view hidden">
+      <h1>Settings</h1>
+
+      <form id="settings-form" class="panel">
+        <label for="shared_folder">Shared capture folder
+          <span class="label-hint">VirtualBox shared folder your VMs write transcripts &amp; screenshots into</span>
+        </label>
+        <input type="text" id="shared_folder" placeholder="C:\LabCapture" spellcheck="false">
+
+        <label for="repo_path">Documentation repo path
+          <span class="label-hint">Local clone of the GitHub repo LabScribe will write the README into</span>
+        </label>
+        <input type="text" id="repo_path" placeholder="C:\Users\you\home-lab-docs" spellcheck="false">
+
+        <label for="lab_subnet">Lab subnet
+          <span class="label-hint">Used by nmap discovery in M4 — your isolated lab network only</span>
+        </label>
+        <input type="text" id="lab_subnet" placeholder="10.10.10.0/24" spellcheck="false">
+
+        <label for="api_key">Anthropic API key
+          <span class="label-hint" id="api-key-hint">Stored locally in .env — never committed, never logged</span>
+        </label>
+        <input type="password" id="api_key" placeholder="sk-ant-..." autocomplete="off">
+
+        <div class="form-actions">
+          <button type="submit" class="save-btn">Save settings</button>
+          <span id="save-status" class="save-status"></span>
+        </div>
+      </form>
+    </section>
+
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>

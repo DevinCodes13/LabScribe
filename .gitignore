@@ -1,0 +1,23 @@
+# Secrets — the real .env must never be committed (spec R4)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller build output
+build/pyinstaller/
+dist/
+*.spec.bak
+
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+
+# Local capture data if ever pointed inside the repo by mistake
+capture/

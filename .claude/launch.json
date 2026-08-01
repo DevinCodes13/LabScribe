@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "labscribe-dev",
+      "runtimeExecutable": "C:\\Claude Code Projects\\Lab Scribe\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["src\\labscribe\\app.py", "--server-only", "--port", "8471"],
+      "port": 8471
+    }
+  ]
+}

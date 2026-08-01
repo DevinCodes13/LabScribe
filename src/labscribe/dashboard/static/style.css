@@ -1,0 +1,168 @@
+/* LabScribe dashboard — dark theme, no framework */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1419;
+  --bg-panel: #171e26;
+  --bg-input: #0b0f14;
+  --border: #2a3542;
+  --text: #d6dee8;
+  --text-dim: #8494a7;
+  --accent: #34c07a;
+  --accent-dim: #1f7a4d;
+  --warn: #e0b34c;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+.layout { display: flex; min-height: 100vh; }
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  width: 190px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 12px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 4px 8px 18px;
+}
+.brand-icon { color: var(--accent); }
+
+.nav-btn {
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+}
+.nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.nav-btn.active { background: rgba(52,192,122,0.12); color: var(--accent); }
+
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 8px;
+}
+
+/* ---------- main content ---------- */
+.content { flex: 1; padding: 28px 34px; max-width: 900px; }
+
+h1 { font-size: 24px; font-weight: 600; margin-bottom: 20px; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em;
+     color: var(--text-dim); margin-bottom: 14px; }
+
+.view.hidden { display: none; }
+
+/* ---------- big action buttons ---------- */
+.button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+
+.big-btn {
+  position: relative;
+  padding: 16px 22px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+}
+.big-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.badge {
+  position: absolute;
+  top: -8px; right: -8px;
+  background: var(--warn);
+  color: #14100a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+/* ---------- panels ---------- */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 18px;
+}
+.panel.muted p { color: var(--text-dim); line-height: 1.5; }
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+}
+.stat { display: flex; flex-direction: column; gap: 4px; }
+.stat-label { font-size: 12px; color: var(--text-dim); }
+.stat-value { font-size: 18px; font-weight: 600; }
+
+.hint { margin-top: 14px; font-size: 13px; color: var(--warn); }
+.hint:empty { display: none; }
+
+/* ---------- settings form ---------- */
+label {
+  display: block;
+  font-weight: 600;
+  margin: 18px 0 6px;
+}
+label:first-of-type { margin-top: 0; }
+
+.label-hint {
+  display: block;
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 14px;
+  font-family: Consolas, monospace;
+}
+input:focus { outline: 1px solid var(--accent-dim); }
+
+.form-actions { display: flex; align-items: center; gap: 14px; margin-top: 22px; }
+
+.save-btn {
+  padding: 11px 26px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #08140d;
+  cursor: pointer;
+}
+.save-btn:hover { filter: brightness(1.1); }
+
+.save-status { font-size: 14px; color: var(--accent); }
+.save-status.error { color: #e06c5c; }
