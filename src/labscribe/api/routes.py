@@ -16,6 +16,7 @@ from labscribe.capture import orchestrator
 from labscribe.capture.agents import render_agents
 from labscribe.config import settings
 from labscribe.diagram import nmap_scan
+from labscribe.gitio import repo as gitrepo
 from labscribe.synthesis import engine
 from labscribe.synthesis.render import render_markdown
 
@@ -35,6 +36,7 @@ class SettingsIn(BaseModel):
     lab_subnet: str = ""
     # Only sent when the user types a new key; empty means "keep existing"
     api_key: str = ""
+    auto_commit: bool = False
 
 
 class SessionIn(BaseModel):
@@ -59,7 +61,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "milestone": "M4"}
+        return {"status": "ok", "milestone": "M5"}
 
     @app.get("/api/settings")
     def read_settings():
@@ -72,6 +74,7 @@ def create_app() -> FastAPI:
             repo_path=body.repo_path,
             lab_subnet=body.lab_subnet,
             api_key=body.api_key or None,
+            auto_commit=body.auto_commit,
         )
         return settings.get_settings()
 
@@ -121,6 +124,23 @@ def create_app() -> FastAPI:
         except engine.SynthesisError as e:
             raise HTTPException(status_code=400, detail=str(e))
         result["html"] = render_markdown(result["markdown"])
+
+        # Opt-in auto-commit (off by default). Best-effort: never let a commit
+        # failure hide the freshly generated doc — surface it as auto_commit info
+        # so the review screen can show it and the user can fix and retry.
+        cfg = settings.get_settings()
+        if cfg["auto_commit"]:
+            session = engine._find_session(session_id)
+            try:
+                commit = gitrepo.commit_docs(
+                    session, result["markdown"], cfg["repo_path"]
+                )
+                result["auto_commit"] = {"ok": True, **commit}
+            except gitrepo.RepoError as e:
+                result["auto_commit"] = {
+                    "ok": False, "message": str(e),
+                    "findings": getattr(e, "findings", []),
+                }
         return result
 
     @app.get("/api/session/{session_id}/doc")
@@ -140,6 +160,36 @@ def create_app() -> FastAPI:
     def render(body: RenderIn):
         # Live preview for the review screen's editor.
         return {"html": render_markdown(body.markdown)}
+
+    # ---------- git integration (M5) ----------
+
+    @app.get("/api/repo/status")
+    def repo_status():
+        return gitrepo.repo_status(settings.get_settings()["repo_path"])
+
+    @app.post("/api/session/{session_id}/commit")
+    def commit(session_id: str, body: DocIn | None = None):
+        # Commit the reviewed doc. Use the markdown from the review editor if
+        # provided (so unsaved edits are included), else the saved doc.
+        markdown = (body.markdown if body and body.markdown is not None
+                    else engine.get_doc(session_id))
+        if not markdown:
+            raise HTTPException(status_code=400, detail="No document to commit.")
+        session = engine._find_session(session_id)
+        if not session:
+            raise HTTPException(status_code=400, detail="Session not found.")
+        # Persist whatever we're committing so the saved doc matches the repo.
+        engine.save_doc(session_id, markdown)
+        try:
+            result = gitrepo.commit_docs(
+                session, markdown, settings.get_settings()["repo_path"]
+            )
+        except gitrepo.RepoError as e:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": str(e), "findings": getattr(e, "findings", [])},
+            )
+        return result
 
     # ---------- network diagram (M4) ----------
 

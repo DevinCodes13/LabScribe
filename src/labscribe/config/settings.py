@@ -32,6 +32,7 @@ _ENV_KEYS = {
     "repo_path": "LABSCRIBE_REPO_PATH",
     "lab_subnet": "LABSCRIBE_LAB_SUBNET",
     "api_key": "ANTHROPIC_API_KEY",
+    "auto_commit": "LABSCRIBE_AUTO_COMMIT",
 }
 
 DEFAULT_SUBNET = "10.10.10.0/24"
@@ -66,6 +67,8 @@ def get_settings() -> dict:
         "lab_subnet": raw.get(_ENV_KEYS["lab_subnet"], DEFAULT_SUBNET),
         "api_key_set": bool(api_key),
         "api_key_hint": ("..." + api_key[-4:]) if len(api_key) >= 8 else "",
+        # Auto-commit is opt-in and off by default (spec R6).
+        "auto_commit": raw.get(_ENV_KEYS["auto_commit"], "false").lower() == "true",
     }
 
 
@@ -75,7 +78,7 @@ def get_api_key() -> str:
 
 
 def save_settings(shared_folder: str, repo_path: str, lab_subnet: str,
-                  api_key: str | None) -> None:
+                  api_key: str | None, auto_commit: bool = False) -> None:
     """Write settings to the .env file.
 
     api_key=None (or empty) means "keep the existing key" — the UI sends the
@@ -86,6 +89,7 @@ def save_settings(shared_folder: str, repo_path: str, lab_subnet: str,
     current[_ENV_KEYS["shared_folder"]] = shared_folder.strip()
     current[_ENV_KEYS["repo_path"]] = repo_path.strip()
     current[_ENV_KEYS["lab_subnet"]] = lab_subnet.strip() or DEFAULT_SUBNET
+    current[_ENV_KEYS["auto_commit"]] = "true" if auto_commit else "false"
     if api_key:
         current[_ENV_KEYS["api_key"]] = api_key.strip()
 

@@ -30,6 +30,8 @@ a = Analysis(
         + collect_submodules("markdown")
         # anthropic / its deps resolve some modules dynamically
         + collect_submodules("anthropic")
+        # GitPython resolves git.refs / git.objects submodules dynamically
+        + collect_submodules("git")
     ),
     hookspath=[],
     runtime_hooks=[],

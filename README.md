@@ -31,8 +31,22 @@ icon. Full specification: [docs/LabScribe-SPEC.md](docs/LabScribe-SPEC.md).
 - [x] **M2 — Capture orchestration**: sessions, folder watching, notes, agents
 - [x] **M3 — Synthesis engine**: Anthropic API → README markdown + review screen
 - [x] **M4 — Diagram generation**: nmap sweep / inventory → Mermaid, embedded in README
-- [ ] M5 — Git integration
+- [x] **M5 — Git integration**: review → secret-scan → commit; changelog; auto-commit opt-in
 - [ ] M6 — Packaging polish + first-run wizard
+
+## How committing works (M5)
+
+From the **Review Docs** screen, **Commit to repo** writes the reviewed markdown
+to `README.md` and appends a dated line to `CHANGELOG.md` in your configured
+repo, then `git commit`s both. Before writing anything, a **secret scan** runs
+over the exact content — if it finds a high-confidence key pattern (Anthropic /
+OpenAI / AWS / GitHub / Google / Slack tokens, or a private-key block) the commit
+is **blocked** and the finding is shown (masked) so you can redact it in the
+editor and retry. Nothing partial is ever written.
+
+**Auto-commit** (Settings, off by default) commits automatically right after a
+doc is generated — the same secret scan still runs and still blocks on findings.
+LabScribe commits locally; pushing to GitHub stays in your hands.
 
 ## How the network diagram works (M4)
 

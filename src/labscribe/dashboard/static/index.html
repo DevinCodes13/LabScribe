@@ -90,13 +90,12 @@
           <div class="review-actions">
             <button class="secondary-btn" id="btn-regenerate">⟳ Regenerate</button>
             <button class="secondary-btn" id="btn-save-doc">Save edits</button>
-            <button class="save-btn" id="btn-commit" disabled title="Coming in Milestone 5">
-              Commit to repo <span class="badge">M5</span>
-            </button>
+            <button class="save-btn" id="btn-commit">Commit to repo</button>
           </div>
         </div>
         <p class="hint" id="review-error"></p>
         <p class="hint-ok" id="review-status"></p>
+        <div id="commit-result"></div>
 
         <div class="review-split">
           <div class="review-pane">
@@ -189,6 +188,7 @@
           <span class="label-hint">Local clone of the GitHub repo LabScribe will write the README into</span>
         </label>
         <input type="text" id="repo_path" placeholder="C:\Users\you\home-lab-docs" spellcheck="false">
+        <p class="repo-status" id="repo-status"></p>
 
         <label for="lab_subnet">Lab subnet
           <span class="label-hint">Used by nmap discovery in M4 — your isolated lab network only</span>
@@ -199,6 +199,12 @@
           <span class="label-hint" id="api-key-hint">Stored locally in .env — never committed, never logged</span>
         </label>
         <input type="password" id="api_key" placeholder="sk-ant-..." autocomplete="off">
+
+        <label class="check-label" for="auto_commit">
+          <input type="checkbox" id="auto_commit">
+          Auto-commit generated docs to the repo
+          <span class="label-hint">Off by default. When on, a doc is committed right after it's generated — a secret scan still runs and blocks on findings.</span>
+        </label>
 
         <div class="form-actions">
           <button type="submit" class="save-btn">Save settings</button>

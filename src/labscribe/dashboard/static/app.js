@@ -8,8 +8,11 @@ async function api(path, options) {
   const res = await fetch(path, options);
   if (!res.ok) {
     let detail = "HTTP " + res.status;
-    try { detail = (await res.json()).detail || detail; } catch (_) {}
-    throw new Error(detail);
+    try { detail = (await res.json()).detail ?? detail; } catch (_) {}
+    // detail may be a string or a structured object (e.g. secret findings).
+    const err = new Error(typeof detail === "string" ? detail : (detail.message || "Request failed"));
+    err.detail = detail;
+    throw err;
   }
   return res.json();
 }
@@ -213,7 +216,17 @@ async function generateForSession(session) {
     const data = await postJSON(`/api/session/${session.id}/generate`, {});
     showView("review");
     renderReview(session, data);
-    reviewStatus.textContent = "Generated ✓ — review, edit, then commit (M5).";
+    reviewStatus.textContent = "Generated ✓ — review, edit, then commit.";
+    // If auto-commit is on, report what happened right in the review screen.
+    if (data.auto_commit) {
+      if (data.auto_commit.ok) {
+        reviewStatus.textContent =
+          `Generated & auto-committed ${data.auto_commit.commit} to ${data.auto_commit.branch} ✓`;
+      } else {
+        $("review-error").textContent = "Auto-commit failed: " + data.auto_commit.message;
+        showCommitFindings(data.auto_commit.message, data.auto_commit.findings);
+      }
+    }
     reviewStatus.classList.remove("busy");
     dashStatus.textContent = "";
     dashStatus.classList.remove("busy");
@@ -274,6 +287,51 @@ $("btn-save-doc").addEventListener("click", async () => {
     setTimeout(() => { status.textContent = ""; }, 2500);
   } catch (err) {
     $("review-error").textContent = err.message;
+  }
+});
+
+function showCommitFindings(message, findings) {
+  const box = $("commit-result");
+  if (!findings || !findings.length) { box.innerHTML = ""; return; }
+  const items = findings.map((f) => {
+    const li = document.createElement("li");
+    li.textContent = `line ${f.line}: ${f.type} (${f.preview})`;
+    return li.outerHTML;
+  }).join("");
+  const msg = document.createElement("div");
+  msg.textContent = message;
+  box.innerHTML =
+    `<div class="commit-findings">${msg.outerHTML}` +
+    `<ul>${items}</ul>` +
+    `<div>Redact these in the editor and commit again.</div></div>`;
+}
+
+$("btn-commit").addEventListener("click", async () => {
+  if (!reviewSession) return;
+  const status = $("review-status");
+  const err = $("review-error");
+  err.textContent = "";
+  $("commit-result").innerHTML = "";
+  status.textContent = "Committing to repo…";
+  status.classList.add("busy");
+  $("btn-commit").disabled = true;
+  try {
+    const r = await postJSON(`/api/session/${reviewSession.id}/commit`,
+      { markdown: $("review-raw").value });
+    status.classList.remove("busy");
+    status.textContent = `Committed ${r.commit} to ${r.branch} ✓ (${r.files.join(", ")})`;
+  } catch (e) {
+    status.textContent = ""; status.classList.remove("busy");
+    // Secret-scan blocks arrive as a structured detail {message, findings}.
+    let detail = e.detail;
+    if (detail && typeof detail === "object") {
+      err.textContent = detail.message || "Commit failed.";
+      showCommitFindings(detail.message || "", detail.findings);
+    } else {
+      err.textContent = e.message;
+    }
+  } finally {
+    $("btn-commit").disabled = false;
   }
 });
 
@@ -408,15 +466,36 @@ const fields = {
   repo_path: $("repo_path"),
   lab_subnet: $("lab_subnet"),
   api_key: $("api_key"),
+  auto_commit: $("auto_commit"),
 };
 const saveStatus = $("save-status");
 const apiKeyHint = $("api-key-hint");
+
+async function loadRepoStatus() {
+  const el = $("repo-status");
+  try {
+    const r = await api("/api/repo/status");
+    el.classList.remove("ok", "warn");
+    if (!r.path) { el.textContent = ""; return; }
+    if (r.is_repo) {
+      el.textContent = `Git repo detected on branch ${r.branch}.`;
+      el.classList.add("ok");
+    } else if (r.exists) {
+      el.textContent = "Folder exists but is not a git repository — run `git init` there or point at your cloned repo.";
+      el.classList.add("warn");
+    } else {
+      el.textContent = "Path does not exist yet.";
+      el.classList.add("warn");
+    }
+  } catch (_) { el.textContent = ""; }
+}
 
 async function loadSettings() {
   const s = await api("/api/settings");
   fields.shared_folder.value = s.shared_folder;
   fields.repo_path.value = s.repo_path;
   fields.lab_subnet.value = s.lab_subnet;
+  fields.auto_commit.checked = !!s.auto_commit;
   // The server never sends the key back — only whether one is saved.
   fields.api_key.value = "";
   if (s.api_key_set) {
@@ -426,6 +505,7 @@ async function loadSettings() {
     fields.api_key.placeholder = "sk-ant-...";
     apiKeyHint.textContent = "Stored locally in .env — never committed, never logged";
   }
+  loadRepoStatus();
 }
 
 form.addEventListener("submit", async (e) => {
@@ -438,6 +518,7 @@ form.addEventListener("submit", async (e) => {
       repo_path: fields.repo_path.value,
       lab_subnet: fields.lab_subnet.value,
       api_key: fields.api_key.value, // empty = keep existing key
+      auto_commit: fields.auto_commit.checked,
     });
     saveStatus.textContent = "Saved ✓";
     await loadSettings();

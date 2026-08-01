@@ -13,8 +13,8 @@ markdown>=3.5           # renders generated markdown to HTML for the review scre
 # Diagram generation (M4)
 python-libnmap>=0.7     # parses nmap XML output into host/port objects
 
+# Git integration (M5)
+GitPython>=3.1          # commit generated docs into the user's repo
+
 # Packaging
 pyinstaller>=6.10
-
-# Later milestones (installed now so the environment is stable):
-# GitPython — added in M5 (git integration)
