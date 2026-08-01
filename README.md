@@ -28,11 +28,22 @@ icon. Full specification: [docs/LabScribe-SPEC.md](docs/LabScribe-SPEC.md).
 ## Status
 
 - [x] **M1 — Skeleton**: window + tray + Settings screen + packaged .exe
-- [ ] M2 — Capture orchestration
-- [ ] M3 — Synthesis engine (Anthropic API)
+- [x] **M2 — Capture orchestration**: sessions, folder watching, notes, agents
+- [x] **M3 — Synthesis engine**: Anthropic API → README markdown + review screen
 - [ ] M4 — nmap → Mermaid diagram
 - [ ] M5 — Git integration
 - [ ] M6 — Packaging polish + first-run wizard
+
+## How synthesis works (M3)
+
+Clicking **Generate Docs** gathers the selected session's transcripts, quick
+notes, and screenshot filenames, sends them to the Anthropic API
+(`claude-opus-5`, streamed), and produces README markdown in the format from
+[templates/readme_template.md](templates/readme_template.md). The **Review Docs**
+screen shows the result rendered next to editable raw markdown — edit, regenerate,
+or (from M5) commit. Because lab transcripts contain legitimate offensive-security
+content, requests opt into a server-side refusal fallback to `claude-opus-4-8` so
+authorized, educational lab material still gets documented.
 
 ## Running it
 

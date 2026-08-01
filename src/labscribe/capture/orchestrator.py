@@ -75,6 +75,22 @@ def _parse(ts: str) -> datetime:
     return datetime.strptime(ts, TIME_FMT)
 
 
+def in_window(when: datetime, start: datetime | None, end: datetime | None) -> bool:
+    """Is `when` inside [start, end], comparing at whole-second precision?
+
+    Stored session timestamps are second-precision (strptime drops microseconds),
+    but file mtimes carry sub-second fractions. Without flooring, a file written
+    at :43.5 during a session that stopped at :43.0 would be wrongly excluded as
+    "after the end". Floor `when` to the second and treat both bounds as inclusive.
+    """
+    w = when.replace(microsecond=0)
+    if start and w < start:
+        return False
+    if end and w > end:
+        return False
+    return True
+
+
 def _count_files(folder: Path, start: datetime | None, end: datetime | None) -> int:
     """Count files in a folder whose mtime falls inside [start, end]."""
     if not folder.exists():
@@ -83,12 +99,8 @@ def _count_files(folder: Path, start: datetime | None, end: datetime | None) -> 
     for f in folder.iterdir():
         if not f.is_file():
             continue
-        mtime = datetime.fromtimestamp(f.stat().st_mtime)
-        if start and mtime < start:
-            continue
-        if end and mtime > end:
-            continue
-        n += 1
+        if in_window(datetime.fromtimestamp(f.stat().st_mtime), start, end):
+            n += 1
     return n
 
 
@@ -104,12 +116,8 @@ def _count_notes(root: Path, start: datetime | None, end: datetime | None) -> in
         m = _NOTE_LINE.match(line)
         if not m:
             continue
-        ts = _parse(m.group(1))
-        if start and ts < start:
-            continue
-        if end and ts > end:
-            continue
-        n += 1
+        if in_window(_parse(m.group(1)), start, end):
+            n += 1
     return n
 
 
@@ -178,13 +186,18 @@ def status() -> dict:
         current = counts(_parse(active["started_at"]), None)
     else:
         current = counts()  # idle: show all-time folder totals
+    # Most recent doc-generation timestamp across all sessions (set in M3).
+    generated = [s["last_generated"] for s in _load_sessions()
+                 if s.get("last_generated")]
+    last_generated = max(generated) if generated else None
+
     return {
         "configured": bool(cfg["shared_folder"]),
         "shared_folder_ok": bool(cfg["shared_folder"])
         and Path(cfg["shared_folder"]).exists(),
         "active": active,
         "counts": current,
-        "last_generated": None,  # populated in M3
+        "last_generated": last_generated,
     }
 
 

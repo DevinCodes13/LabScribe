@@ -15,6 +15,7 @@ a = Analysis(
         ("src\\labscribe\\dashboard\\static", "dashboard\\static"),
         ("src\\labscribe\\capture\\agents\\windows_profile.ps1", "capture\\agents"),
         ("src\\labscribe\\capture\\agents\\linux_bashrc.sh", "capture\\agents"),
+        ("templates\\readme_template.md", "templates"),
         ("assets\\icon.png", "assets"),
     ],
     hiddenimports=(
@@ -25,6 +26,10 @@ a = Analysis(
         + ["webview.platforms.edgechromium", "webview.platforms.winforms"]
         # pystray's Windows backend, also chosen at runtime
         + ["pystray._win32"]
+        # markdown loads its extensions by dotted string at runtime
+        + collect_submodules("markdown")
+        # anthropic / its deps resolve some modules dynamically
+        + collect_submodules("anthropic")
     ),
     hookspath=[],
     runtime_hooks=[],

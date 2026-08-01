@@ -14,12 +14,13 @@
       <span class="brand-name">LabScribe</span>
     </div>
     <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+    <button class="nav-btn" data-view="review">Review Docs</button>
     <button class="nav-btn" data-view="agents">Capture Agents</button>
     <button class="nav-btn" data-view="settings">Settings</button>
     <div class="rec-indicator hidden" id="rec-indicator">
       <span class="rec-dot"></span> RECORDING
     </div>
-    <div class="sidebar-footer">Milestone 2 — capture</div>
+    <div class="sidebar-footer">Milestone 3 — synthesis</div>
   </nav>
 
   <main class="content">
@@ -31,10 +32,7 @@
       <div class="button-row">
         <button class="big-btn" id="btn-start">▶ Start Session</button>
         <button class="big-btn" id="btn-stop" disabled>■ Stop Session</button>
-        <button class="big-btn" disabled title="Coming in Milestone 3">
-          ✎ Generate Docs
-          <span class="badge">M3</span>
-        </button>
+        <button class="big-btn" id="btn-generate">✎ Generate Docs</button>
         <button class="big-btn" disabled title="Coming in Milestone 4">
           ⟳ Refresh Diagram
           <span class="badge">M4</span>
@@ -51,8 +49,10 @@
           <div class="stat"><span class="stat-label">Transcripts</span><span class="stat-value" id="stat-transcripts">0</span></div>
           <div class="stat"><span class="stat-label">Screenshots</span><span class="stat-value" id="stat-screenshots">0</span></div>
           <div class="stat"><span class="stat-label">Notes</span><span class="stat-value" id="stat-notes">0</span></div>
+          <div class="stat"><span class="stat-label">Last generated</span><span class="stat-value" id="stat-generated">never</span></div>
         </div>
         <p class="hint" id="config-hint"></p>
+        <p class="hint-ok" id="generate-status"></p>
       </div>
 
       <div class="panel">
@@ -70,6 +70,45 @@
         <h2>Sessions</h2>
         <div id="sessions-list" class="sessions-list">
           <p class="empty-msg">No sessions yet — click Start Session when you begin lab work.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REVIEW DOCS VIEW ============ -->
+    <section id="view-review" class="view hidden">
+      <h1>Review Docs</h1>
+
+      <div class="panel" id="review-empty">
+        <p class="empty-msg">No document loaded. Click <strong>Generate Docs</strong> on
+           the Dashboard, or pick a past session and choose <strong>View / Generate</strong>.</p>
+      </div>
+
+      <div id="review-body" class="hidden">
+        <div class="review-toolbar">
+          <div>
+            <div class="review-title" id="review-session-name">—</div>
+            <div class="review-meta" id="review-session-meta"></div>
+          </div>
+          <div class="review-actions">
+            <button class="secondary-btn" id="btn-regenerate">⟳ Regenerate</button>
+            <button class="secondary-btn" id="btn-save-doc">Save edits</button>
+            <button class="save-btn" id="btn-commit" disabled title="Coming in Milestone 5">
+              Commit to repo <span class="badge">M5</span>
+            </button>
+          </div>
+        </div>
+        <p class="hint" id="review-error"></p>
+        <p class="hint-ok" id="review-status"></p>
+
+        <div class="review-split">
+          <div class="review-pane">
+            <div class="review-pane-label">Rendered</div>
+            <div class="rendered-doc" id="review-rendered"></div>
+          </div>
+          <div class="review-pane">
+            <div class="review-pane-label">Markdown (editable)</div>
+            <textarea class="raw-doc" id="review-raw" spellcheck="false"></textarea>
+          </div>
         </div>
       </div>
     </section>

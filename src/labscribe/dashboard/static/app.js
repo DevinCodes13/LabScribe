@@ -60,6 +60,7 @@ async function refreshStatus() {
     $("stat-transcripts").textContent = s.counts.transcripts;
     $("stat-screenshots").textContent = s.counts.screenshots;
     $("stat-notes").textContent = s.counts.notes;
+    $("stat-generated").textContent = s.last_generated || "never";
 
     $("btn-start").disabled = !!active;
     $("btn-stop").disabled = !active;
@@ -131,18 +132,21 @@ $("note-form").addEventListener("submit", async (e) => {
 });
 
 // ---------- sessions list ----------
+// Newest-first list kept around so the dashboard "Generate Docs" button can
+// pick a sensible target (active session, else most recent).
+let allSessions = [];
+
 async function loadSessions() {
   const list = $("sessions-list");
-  let sessions;
-  try { sessions = await api("/api/sessions"); } catch (_) { return; }
+  try { allSessions = await api("/api/sessions"); } catch (_) { return; }
 
-  if (!sessions.length) {
+  if (!allSessions.length) {
     list.innerHTML =
       '<p class="empty-msg">No sessions yet — click Start Session when you begin lab work.</p>';
     return;
   }
   list.innerHTML = "";
-  for (const s of sessions) {
+  for (const s of allSessions) {
     const row = document.createElement("div");
     row.className = "session-row" + (s.ended_at ? "" : " session-live");
     const c = s.counts;
@@ -152,11 +156,132 @@ async function loadSessions() {
     row.innerHTML =
       `<span class="session-name"></span>` +
       `<span class="session-meta">${s.started_at} → ${s.ended_at || "…"}</span>` +
-      `<span class="session-meta">${countsTxt}</span>`;
+      `<span class="session-meta">${countsTxt}</span>` +
+      `<span class="session-actions"></span>`;
     row.querySelector(".session-name").textContent = s.name; // textContent = no HTML injection
+    const btn = document.createElement("button");
+    btn.className = "row-btn";
+    btn.textContent = s.last_generated ? "View docs" : "View / Generate";
+    btn.addEventListener("click", () => openReviewForSession(s));
+    row.querySelector(".session-actions").appendChild(btn);
     list.appendChild(row);
   }
 }
+
+function pickTargetSession() {
+  // Prefer the active session; otherwise the most recent (list is newest-first).
+  return allSessions.find((s) => !s.ended_at) || allSessions[0] || null;
+}
+
+// ---------- synthesis / review (M3) ----------
+let reviewSession = null;   // { id, name } currently shown in the review pane
+
+function showView(name) {
+  navButtons.forEach((b) => b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+  $("view-" + name).classList.remove("hidden");
+}
+
+function renderReview(session, data) {
+  reviewSession = { id: session.id, name: session.name };
+  $("review-empty").classList.add("hidden");
+  $("review-body").classList.remove("hidden");
+  $("review-session-name").textContent = session.name;
+  $("review-session-meta").textContent =
+    (data.generated_at ? "Generated " + data.generated_at : "Saved draft") +
+    (data.served_by ? " · " + data.served_by : "");
+  $("review-rendered").innerHTML = data.html;
+  $("review-raw").value = data.markdown;
+  $("review-error").textContent = "";
+}
+
+async function generateForSession(session) {
+  const dashStatus = $("generate-status");
+  const reviewStatus = $("review-status");
+  const target = reviewSession && reviewSession.id === session.id ? reviewStatus : dashStatus;
+  target.textContent = "Generating docs — this can take a minute…";
+  target.classList.add("busy");
+  $("btn-generate").disabled = true;
+  $("btn-regenerate").disabled = true;
+  try {
+    const data = await postJSON(`/api/session/${session.id}/generate`, {});
+    showView("review");
+    renderReview(session, data);
+    reviewStatus.textContent = "Generated ✓ — review, edit, then commit (M5).";
+    reviewStatus.classList.remove("busy");
+    dashStatus.textContent = "";
+    dashStatus.classList.remove("busy");
+    refreshStatus();
+    loadSessions();
+    setTimeout(() => { reviewStatus.textContent = ""; }, 4000);
+  } catch (err) {
+    target.classList.remove("busy");
+    // If we're already on the review screen, show the error there; else on dashboard.
+    if (reviewSession && reviewSession.id === session.id && !$("view-review").classList.contains("hidden")) {
+      $("review-error").textContent = err.message;
+      reviewStatus.textContent = "";
+    } else {
+      target.textContent = "";
+      $("action-error").textContent = err.message;
+    }
+  } finally {
+    $("btn-generate").disabled = false;
+    $("btn-regenerate").disabled = false;
+  }
+}
+
+async function openReviewForSession(session) {
+  // If a doc already exists, open it; otherwise generate a fresh one.
+  if (session.last_generated) {
+    try {
+      const data = await api(`/api/session/${session.id}/doc`);
+      showView("review");
+      renderReview(session, data);
+      return;
+    } catch (_) { /* fall through to generate */ }
+  }
+  generateForSession(session);
+}
+
+$("btn-generate").addEventListener("click", () => {
+  $("action-error").textContent = "";
+  const target = pickTargetSession();
+  if (!target) {
+    $("action-error").textContent = "No sessions yet — start one and capture some work first.";
+    return;
+  }
+  generateForSession(target);
+});
+
+$("btn-regenerate").addEventListener("click", () => {
+  if (reviewSession) generateForSession(reviewSession);
+});
+
+$("btn-save-doc").addEventListener("click", async () => {
+  if (!reviewSession) return;
+  const status = $("review-status");
+  try {
+    const data = await postJSON(`/api/session/${reviewSession.id}/doc`,
+      { markdown: $("review-raw").value });
+    $("review-rendered").innerHTML = data.html;
+    status.textContent = "Edits saved ✓";
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  } catch (err) {
+    $("review-error").textContent = err.message;
+  }
+});
+
+// Live preview: re-render the rendered pane a moment after the user stops typing.
+let renderTimer = null;
+$("review-raw").addEventListener("input", () => {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(async () => {
+    try {
+      const data = await postJSON("/api/render", { markdown: $("review-raw").value });
+      $("review-rendered").innerHTML = data.html;
+    } catch (_) {}
+  }, 400);
+});
 
 // ---------- capture agents ----------
 async function loadAgents() {

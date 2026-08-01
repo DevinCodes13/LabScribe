@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from labscribe.capture import orchestrator
 from labscribe.capture.agents import render_agents
 from labscribe.config import settings
+from labscribe.synthesis import engine
+from labscribe.synthesis.render import render_markdown
 
 
 def _static_dir() -> Path:
@@ -41,13 +43,21 @@ class NoteIn(BaseModel):
     text: str
 
 
+class DocIn(BaseModel):
+    markdown: str
+
+
+class RenderIn(BaseModel):
+    markdown: str
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="LabScribe", docs_url=None, redoc_url=None)
     static = _static_dir()
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "milestone": "M2"}
+        return {"status": "ok", "milestone": "M3"}
 
     @app.get("/api/settings")
     def read_settings():
@@ -99,6 +109,35 @@ def create_app() -> FastAPI:
     @app.get("/api/agents")
     def agents():
         return render_agents()
+
+    # ---------- synthesis / docs (M3) ----------
+
+    @app.post("/api/session/{session_id}/generate")
+    def generate(session_id: str):
+        try:
+            result = engine.generate_docs(session_id)
+        except engine.SynthesisError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        result["html"] = render_markdown(result["markdown"])
+        return result
+
+    @app.get("/api/session/{session_id}/doc")
+    def read_doc(session_id: str):
+        md = engine.get_doc(session_id)
+        if md is None:
+            raise HTTPException(status_code=404, detail="No document generated yet.")
+        return {"session_id": session_id, "markdown": md, "html": render_markdown(md)}
+
+    @app.post("/api/session/{session_id}/doc")
+    def write_doc(session_id: str, body: DocIn):
+        # Save edits made in the review screen.
+        engine.save_doc(session_id, body.markdown)
+        return {"session_id": session_id, "html": render_markdown(body.markdown)}
+
+    @app.post("/api/render")
+    def render(body: RenderIn):
+        # Live preview for the review screen's editor.
+        return {"html": render_markdown(body.markdown)}
 
     @app.get("/")
     def index():

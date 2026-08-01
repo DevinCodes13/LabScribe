@@ -1,8 +1,9 @@
 # Secrets — the real .env must never be committed (spec R4)
 .env
 
-# Local app state (session history lives next to .env in dev mode)
+# Local app state (session history + generated docs live next to .env in dev mode)
 sessions.json
+/generated/
 
 # Python
 __pycache__/
