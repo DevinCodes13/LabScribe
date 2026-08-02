@@ -38,6 +38,23 @@ icon. Full specification: [docs/LabScribe-SPEC.md](docs/LabScribe-SPEC.md).
 with an LLM, generates a network diagram, and commits to your repo — all from a
 double-clickable `.exe`, no terminal needed.
 
+## Live troubleshooting alerts (bonus, post-v1.0)
+
+While a session is running, a background thread tails the active transcript
+files and pops a tray notification the instant a line looks like an error or
+warning ("Possible issue on DC01 — WARNING: A delegation for this DNS server
+cannot be created — consider a screenshot") — a nudge to grab a screenshot
+*now*, while the exact wording is still on screen.
+
+This adds **no new capture surface**: it only reads the transcript text
+LabScribe already collects during an active session (opt-in, from lab VMs
+you've installed a capture snippet in) — it never touches your screen, other
+windows, or anything outside those recorded terminals. It's tied 1:1 to
+session state (silent the moment you're not recording), debounced so a burst
+of errors triggers one notification instead of a flood, and redacts the
+same secret patterns used before a git commit so a notification can never
+surface a live credential a failing command happened to echo back.
+
 ## First run & polish (M6)
 
 - **Setup wizard** — on first launch (nothing configured) a 3-step wizard collects

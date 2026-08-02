@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from labscribe import diagram
-from labscribe.capture import orchestrator
+from labscribe.capture import orchestrator, watcher
 from labscribe.capture.agents import render_agents
 from labscribe.config import settings
 from labscribe.diagram import nmap_scan
@@ -94,16 +94,20 @@ def create_app() -> FastAPI:
     @app.post("/api/session/start")
     def session_start(body: SessionIn):
         try:
-            return orchestrator.start_session(body.name)
+            session = orchestrator.start_session(body.name)
         except orchestrator.SessionError as e:
             raise HTTPException(status_code=400, detail=str(e))
+        watcher.start(session)  # live troubleshooting-moment nudges, see watcher.py
+        return session
 
     @app.post("/api/session/stop")
     def session_stop():
         try:
-            return orchestrator.stop_session()
+            session = orchestrator.stop_session()
         except orchestrator.SessionError as e:
             raise HTTPException(status_code=400, detail=str(e))
+        watcher.stop()
+        return session
 
     @app.get("/api/sessions")
     def sessions():

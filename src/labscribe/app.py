@@ -128,7 +128,7 @@ def make_tray_icon(window, server) -> "pystray.Icon":
     import pystray
     from PIL import Image
 
-    from labscribe.capture import orchestrator
+    from labscribe.capture import orchestrator, watcher
 
     image = Image.open(resource_path("assets/icon.png"))
 
@@ -149,6 +149,7 @@ def make_tray_icon(window, server) -> "pystray.Icon":
     def tray_start(icon, item):
         try:
             s = orchestrator.start_session()
+            watcher.start(s)  # live troubleshooting-moment nudges, see watcher.py
             icon.notify(f"Capture started: {s['name']}", APP_NAME)
         except orchestrator.SessionError as e:
             icon.notify(str(e), APP_NAME)
@@ -156,6 +157,7 @@ def make_tray_icon(window, server) -> "pystray.Icon":
     def tray_stop(icon, item):
         try:
             s = orchestrator.stop_session()
+            watcher.stop()
             c = s["counts"]
             icon.notify(
                 f"Stopped: {c['transcripts']} transcripts, "
@@ -201,7 +203,12 @@ def make_tray_icon(window, server) -> "pystray.Icon":
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit", quit_app),
     )
-    return pystray.Icon(APP_NAME, image, APP_NAME, menu)
+    icon = pystray.Icon(APP_NAME, image, APP_NAME, menu)
+    # Wire the watcher's alerts to real tray notifications, regardless of
+    # whether the session that triggered it was started from the tray menu
+    # or the dashboard button — both call the same orchestrator functions.
+    watcher.set_notifier(lambda message: icon.notify(message, APP_NAME))
+    return icon
 
 
 def run_app() -> None:

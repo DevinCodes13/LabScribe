@@ -64,6 +64,19 @@ def secret_scan(text: str) -> list[dict]:
     return findings
 
 
+def redact_secrets(text: str) -> str:
+    """Replace any secret-like substring with [REDACTED].
+
+    Used anywhere a short snippet of raw transcript/command text might be
+    surfaced outside the review flow (e.g. the live troubleshooting watcher's
+    tray notifications) so a credential a failing command echoed back never
+    appears, even in a passing UI element.
+    """
+    for _, pattern in _SECRET_PATTERNS:
+        text = pattern.sub("[REDACTED]", text)
+    return text
+
+
 def _open_repo(repo_path: str):
     if git is None:
         raise RepoError("GitPython isn't available in this build.")
