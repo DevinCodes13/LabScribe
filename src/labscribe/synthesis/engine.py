@@ -89,7 +89,7 @@ def _mark_generated(session_id: str) -> None:
     orchestrator._save_sessions(sessions)
 
 
-def gather_material(session: dict) -> tuple[list[dict], list[str], list[str]]:
+def gather_material(session: dict) -> tuple[list[dict], list[dict], list[str]]:
     """Collect transcripts, screenshot filenames, and notes for the session window."""
     root = orchestrator._shared_folder()  # raises SessionError if unset/missing
     start = orchestrator._parse(session["started_at"])
@@ -111,12 +111,18 @@ def gather_material(session: dict) -> tuple[list[dict], list[str], list[str]]:
                 except OSError:
                     pass
 
-    screenshots: list[str] = []
+    # Screenshots carry their capture timestamp (not just the filename) so the
+    # model can place each citation at the right point in the transcript
+    # timeline instead of just being handed an unanchored list of names.
+    screenshots: list[dict] = []
     sdir = root / "screenshots"
     if sdir.exists():
         for f in sorted(sdir.iterdir()):
-            if f.is_file() and within(datetime.fromtimestamp(f.stat().st_mtime)):
-                screenshots.append(f.name)
+            if f.is_file():
+                mtime = datetime.fromtimestamp(f.stat().st_mtime)
+                if within(mtime):
+                    screenshots.append({"name": f.name, "taken_at": mtime})
+    screenshots.sort(key=lambda s: s["taken_at"])
 
     notes: list[str] = []
     notes_file = root / "notes" / "notes.md"

@@ -50,8 +50,14 @@ RULES
    user applied from what happened next in the transcript. This is where you add \
    the most value.
 3. Build Steps: per machine, summarize what was configured and *why it matters*, \
-   in the order it happened. Reference screenshots by their filename at the right \
-   point, like "(see `2026-07-31_2141_dcpromo.png`)".
+   in the order it happened. Every screenshot you're given comes with the exact \
+   timestamp it was taken — use it to find the closest point in the transcript \
+   timeline and cite it there, like "(see `2026-07-31_2141_dcpromo.png`)". This is \
+   a hard requirement, not a suggestion: every screenshot filename you were given \
+   MUST appear at least once somewhere in the document. If you genuinely can't tell \
+   which specific step a screenshot belongs to, still list it under that machine's \
+   Build Steps section (e.g. "Additional screenshots from this session: \
+   `filename.png`") rather than silently dropping it.
 4. Never include secrets. If a password, API key, hash, or token appears in the \
    raw material, replace it with `[REDACTED]` in your output. Never echo an \
    Anthropic API key.
@@ -66,7 +72,7 @@ TARGET FORMAT
 """
 
 
-def build_user_message(session: dict, transcripts: list[dict], screenshots: list[str],
+def build_user_message(session: dict, transcripts: list[dict], screenshots: list[dict],
                        notes: list[str], lab_subnet: str, max_chars: int) -> str:
     """Assemble the raw capture material into a single user message.
 
@@ -89,10 +95,15 @@ def build_user_message(session: dict, transcripts: list[dict], screenshots: list
         parts.append("(none)")
     parts.append("")
 
-    # Screenshots (filenames only)
-    parts.append("## Screenshot filenames")
+    # Screenshots, timestamped and in chronological order so the model can line
+    # each one up against the point in the transcript where it was taken.
+    parts.append("## Screenshots (chronological — cite every one of these filenames "
+                 "somewhere in Build Steps, placed near its matching timestamp)")
     if screenshots:
-        parts.extend(f"- {name}" for name in screenshots)
+        parts.extend(
+            f"- [{s['taken_at'].strftime('%Y-%m-%d %H:%M:%S')}] {s['name']}"
+            for s in screenshots
+        )
     else:
         parts.append("(none)")
     parts.append("")
