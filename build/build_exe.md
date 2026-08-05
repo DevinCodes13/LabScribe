@@ -37,6 +37,40 @@ Pin the exe to the taskbar / make a shortcut as you like.
 | Packaged .exe | `%APPDATA%\LabScribe\.env` | `%APPDATA%\LabScribe\labscribe.log` |
 | From source | `<repo>\.env` (gitignored) | console output |
 
+## Building the installer (for sharing with other people)
+
+The steps above produce `dist\LabScribe\` — a one-folder build that works
+great on *this* machine, but isn't something you'd hand to someone else (it's
+a folder, not a single file, and there's no Start Menu entry or uninstaller).
+For distributing LabScribe to other people, build a real installer with
+[Inno Setup](https://jrsoftware.org/isinfo.php) (free):
+
+```powershell
+# One-time: install Inno Setup, then build LabScribe.exe as above, then:
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\labscribe.iss
+```
+
+Output: `installer\output\LabScribeSetup-<version>.exe` — a single file, safe
+to send/upload anywhere. Running it gives a normal Windows install wizard:
+Program Files (or a per-user location if the recipient isn't an admin — the
+installer asks), Start Menu shortcut, optional Desktop shortcut, and a proper
+uninstaller. **Uninstalling never touches `%APPDATA%\LabScribe`** (settings,
+session history, generated docs) — verified directly, not just assumed.
+
+**What recipients still need themselves** (not bundled, on purpose):
+- Their **own** Anthropic API key — LabScribe never ships with one baked in,
+  and never should (anyone could extract a bundled key from the binary).
+  This is spelled out on the installer's first screen.
+- Git, to commit generated docs to their own repo.
+- nmap, optional, only for the live network-diagram scan.
+
+**Known limitation:** the installer is unsigned (no code-signing certificate).
+Windows SmartScreen will very likely warn "Windows protected your PC" the
+first time someone runs a downloaded copy — recipients need to click **More
+info → Run anyway**. Getting rid of that warning requires purchasing a
+code-signing certificate, which is a separate, deliberate decision (cost +
+identity verification), not something to do by default.
+
 ## Runtime notes (M6)
 
 - **First run**: with no settings yet, the app opens a setup wizard. To re-trigger

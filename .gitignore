@@ -17,6 +17,9 @@ build/pyinstaller/
 dist/
 *.spec.bak
 
+# Compiled installer (build artifact — rebuild with installer/labscribe.iss)
+installer/output/
+
 # OS / editor noise
 Thumbs.db
 Desktop.ini

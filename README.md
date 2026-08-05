@@ -113,5 +113,9 @@ authorized, educational lab material still gets documented.
 window minimizes to the tray; right-click the tray icon → Quit to exit.
 Settings are stored in `%APPDATA%\LabScribe\.env`.
 
+**Sharing with other people:** build a real installer instead of handing over
+the raw `dist\` folder — see [build/build_exe.md](build/build_exe.md#building-the-installer-for-sharing-with-other-people).
+Each person needs their own Anthropic API key; nothing is ever bundled.
+
 **Development:** see [build/build_exe.md](build/build_exe.md) for the dev
 loop and packaging instructions.
