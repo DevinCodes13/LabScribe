@@ -19,7 +19,12 @@ LABSCRIBE_DIR="{{LINUX_CAPTURE_PATH}}/transcripts"
 
 # Guards: folder reachable, interactive shell, and not already recording
 # (without LABSCRIBE_ACTIVE, `script` spawning a shell would loop forever)
+#
+# --flush: script writes to a regular file, so without this it buffers output
+# in ~4KB chunks instead of writing as you type. That makes LabScribe's live
+# counts and the file itself look "stuck" for a while after real activity.
+# --flush trades a little efficiency for the file staying current.
 if [ -d "$LABSCRIBE_DIR" ] && [ -z "$LABSCRIBE_ACTIVE" ] && [[ $- == *i* ]]; then
     export LABSCRIBE_ACTIVE=1
-    exec script -q -a "$LABSCRIBE_DIR/$(date +%Y-%m-%d_%H%M)_$(hostname).txt"
+    exec script -q -a --flush "$LABSCRIBE_DIR/$(date +%Y-%m-%d_%H%M)_$(hostname).txt"
 fi
