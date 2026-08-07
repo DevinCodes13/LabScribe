@@ -13,7 +13,30 @@ Design notes for the reader:
     model treats attack/detection content as legitimate documentation.
   - It must never invent facts. If something isn't in the material, it says so
     rather than fabricating IPs, versions, or steps.
+
+Cost note: raw `script`-captured Linux transcripts are full of ANSI/VT100
+terminal escape codes (cursor moves, redraws, color) — pure noise for the
+model, and pure token cost. _strip_terminal_codes() removes them before the
+transcript ever reaches the prompt, which both shrinks the request and stops
+the model from having to parse through garbage to find the real content.
 """
+
+import re
+
+# CSI sequences (\x1b[...letter, e.g. \x1b[?25l, \x1b[32m) and OSC sequences
+# (\x1b]...BEL, e.g. window-title-setting) — the two escape families `script`
+# actually emits when it records a real interactive terminal session.
+_CSI = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
+_OSC = re.compile(r"\x1b\][0-9;]*.*?(?:\x07|\x1b\\)")
+_OTHER_ESC = re.compile(r"\x1b[()][A-Za-z0-9]|\x1b[=>]")
+
+
+def _strip_terminal_codes(text: str) -> str:
+    text = _CSI.sub("", text)
+    text = _OSC.sub("", text)
+    text = _OTHER_ESC.sub("", text)
+    # Collapse the runs of blank lines this often leaves behind.
+    return re.sub(r"\n{3,}", "\n\n", text)
 
 SYSTEM_PROMPT = """\
 You are LabScribe's documentation writer. You turn raw capture material from a \
@@ -116,7 +139,7 @@ def build_user_message(session: dict, transcripts: list[dict], screenshots: list
         budget = max_chars
         for t in transcripts:
             header = f"\n----- transcript: {t['name']} -----\n"
-            body = t["text"]
+            body = _strip_terminal_codes(t["text"])
             if len(body) > budget:
                 body = body[:budget] + "\n[...transcript truncated to fit size limit...]"
                 budget = 0

@@ -28,9 +28,13 @@ from labscribe.capture import orchestrator
 from labscribe.config import settings
 from labscribe.synthesis import prompts
 
-MODEL = "claude-opus-5"
+MODEL = "claude-sonnet-5"
 FALLBACK_MODEL = "claude-opus-4-8"
 MAX_OUTPUT_TOKENS = 20000
+# Doc synthesis is a well-specified task (fill in a given template from given
+# material), not open-ended exploration — "medium" effort holds quality while
+# cutting the thinking-token spend "high" (the API default) would otherwise use.
+EFFORT = "medium"
 # Total character budget for transcript text sent in one request. Opus 5 has a
 # 1M-token context window, but there's no reason to send more than this for a
 # single lab session — it keeps requests fast and cheap.
@@ -136,12 +140,20 @@ def gather_material(session: dict) -> tuple[list[dict], list[dict], list[str]]:
 
 
 def _call_model(api_key: str, system: str, user_content: str):
-    """Stream the request with refusal fallback; degrade gracefully on old SDKs."""
+    """Stream the request with refusal fallback; degrade gracefully on old SDKs.
+
+    The system prompt (rules + full README template) is identical across
+    generations that share the same network diagram, so it's marked
+    cacheable — a near-free addition that pays off whenever docs are
+    generated for several sessions back-to-back (a real, common pattern:
+    catching up on a backlog).
+    """
     client = anthropic.Anthropic(api_key=api_key)
     kwargs = dict(
         model=MODEL,
         max_tokens=MAX_OUTPUT_TOKENS,
-        system=system,
+        system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+        output_config={"effort": EFFORT},
         messages=[{"role": "user", "content": user_content}],
     )
     # Preferred path: beta streaming with server-side refusal fallback.
