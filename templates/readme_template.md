@@ -13,10 +13,10 @@
 
 | Host | OS | Role | IP |
 |---|---|---|---|
-| DC01 | Windows Server 2022 | Domain Controller + DNS | 10.10.10.10 |
-| WKS01 | Windows 11 | Domain-joined workstation | 10.10.10.20 |
-| SIEM01 | Ubuntu + Splunk | SIEM / log collector | 10.10.10.30 |
-| KALI01 | Kali Linux | Attacker box | 10.10.10.40 |
+{{HOST_TABLE_ROWS}}
+<!-- One row per host actually referenced in THIS session's material. Do not
+     reuse a fixed inventory across sessions/projects — a different project
+     has different hosts. -->
 
 ## 2. Network Diagram
 

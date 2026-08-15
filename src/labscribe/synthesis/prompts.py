@@ -67,6 +67,15 @@ RULES
 1. Accuracy over completeness. Only state things supported by the transcripts or \
    notes. Do not invent IP addresses, hostnames, versions, or steps. If a detail \
    is implied but not certain, hedge ("appears to", "likely").
+1b. The host table under Overview (marked {{HOST_TABLE_ROWS}} in the target \
+    format) is NOT a fixed inventory — different sessions belong to different \
+    projects with entirely different hosts. Build it fresh, every time, strictly \
+    from the hosts/IPs actually referenced in THIS session's transcripts and \
+    notes. One row per host actually seen this session; omit hosts that aren't \
+    mentioned rather than padding the table with a canonical list. If the same \
+    host is referenced by more than one address (e.g. a NAT IP and a host-only \
+    IP), use the one most relevant to this session's work, and note the other in \
+    Overview if it matters.
 2. The Troubleshooting Log is the most important section. Read the transcript \
    OUTPUT (not just the commands) for errors, failures, and warnings, and turn \
    each into an Issue / Cause / Fix row — inferring the cause and the fix the \
