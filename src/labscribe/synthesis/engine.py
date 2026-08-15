@@ -168,6 +168,15 @@ def _call_model(api_key: str, system: str, user_content: str):
         # SDK too old for betas/fallbacks — fall back to a plain streamed call.
         with client.messages.stream(**kwargs) as stream:
             return stream.get_final_message()
+    except anthropic.BadRequestError as e:
+        # Some models (e.g. claude-sonnet-5, as of this API version) don't yet
+        # support the fallbacks beta at all and 400 immediately — retry as a
+        # plain call with no refusal-fallback safety net rather than failing
+        # generation outright.
+        if "fallbacks" in str(e).lower():
+            with client.messages.stream(**kwargs) as stream:
+                return stream.get_final_message()
+        raise
 
 
 def generate_docs(session_id: str) -> dict:

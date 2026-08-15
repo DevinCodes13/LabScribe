@@ -14,7 +14,7 @@
 ; installer recognizes this as an upgrade rather than a separate install.
 
 #define MyAppName "LabScribe"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "LabScribe"
 #define MyAppExeName "LabScribe.exe"
 #define MyAppURL "https://github.com/"
